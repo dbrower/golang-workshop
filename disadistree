@@ -1,0 +1,25 @@
+/Users/dbrower/gocode
+├── bin
+├── pkg
+└── src
+    └── github.com
+        └── dbrower
+            └── disadis                 <-- package disadis
+                ├── auth                <-- package auth
+                │   ├── devise_cookie.go
+                │   ├── devise_cookie_test.go
+                │   ├── hydra_auth.go
+                │   ├── hydra_auth_test.go
+                │   ├── pubtkt_user.go
+                │   ├── pubtkt_user_test.go
+                │   └── util.go
+                ├── disadis.go
+                ├── download.go
+                ├── fedora              <-- package fedora
+                │   └── fedora.go
+                ├── mux.go
+                ├── stream_seeker.go
+                ├── stream_seeker_test.go
+                └── timecache           <-- package timecache
+                    ├── timecache.go
+                    └── timecache_test.go

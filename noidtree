@@ -1,0 +1,23 @@
+/Users/dbrower/gocode
+├── bin
+├── pkg
+└── src
+    └── github.com
+        └── dbrower
+            └── noids                   <-- package main for noid server
+                ├── main.go
+                ├── noid                <-- package noid for utility routines
+                │   ├── noid.go
+                │   └── noid_test.go
+                ├── noid-tool           <-- package main for command line tool
+                │   └── main.go
+                ├── pools.go
+                ├── pools_test.go
+                ├── save.go
+                ├── save_db.go
+                ├── save_db_test.go
+                ├── save_filesystem.go
+                ├── save_null.go
+                ├── server.go
+                ├── server_test.go
+                └── version.go

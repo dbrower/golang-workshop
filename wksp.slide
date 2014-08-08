@@ -1,0 +1,636 @@
+Go Workshop
+Just enough to be dangerous
+8 Aug 2014
+
+* Plan
+- What is Go? (_Very_ brief advertisement)
+- The Language (abbreviated)
+- Installing and Using Go
+- Packages and file organization on disk
+- Testing
+- The Tool Chain
+- Deep dive tour of a program
+- The standard library (If the slides get written)
+
+* Go!
+
+* Go
+- Began in 2007, open sourced in 2009.
+- Created by Robert Griesemer, Rob Pike, Ken Thompson, and later Ian Lance Taylor, and Russ Cox
+- Statically typed, imperative, compiled language
+- Trying to solve the problem of _Programming-in-the-large_
+
+Rob Pike has the following presentation about the goals behind the language
+
+.link http://talks.golang.org/2012/splash.slide
+
+* Language
+
+* Language
+- "C-like"
+- First class functions
+- Garbage Collection
+- Lightweight processes with Channels
+- _Interfaces_
+- Built-in module system
+
+* Things different from Ruby
+
+- No classes and no inheritance
+- No exceptions
+- No interactive command prompt
+
+_However_ there is an online playground
+
+.link http://play.golang.org/
+
+* Hello World
+
+.play hello.go
+
+* Variables
+
+- Every variable has a _type_
+
+    var s string
+    s = "hello"
+
+- Types can be inferred, sometimes
+
+    var s = "hello"
+
+- The `:=` does a declaration and assignment. Is equivalent to the above
+
+    s := "hello"
+
+* Some Types (Not a complete list)
+
+- `int`, `uint`, `float64`, `complex128` — Numeric
+- `bool` — Boolean value. Constants `true` and `false`
+- `string`
+- `rune` — Unicode code point
+- `[64]int` — Array. Arrays *always* have a definite size.
+- `[]int` — Slice. Slices may have any length.
+- `map[string]int` — Associative array.
+- `*int` — Pointers
+- Structured types
+
+    struct {
+        name string
+        age  int
+    }
+
+* Can define new types
+
+    type <name> <definition>
+
+e.g.
+
+    type Celsius int
+    type User struct {
+        name        string
+        age         int
+        temperature Celsius
+    }
+
+* Loops
+
+Only one loop construct: `for`
+
+    for
+    for <condition>
+    for <init>; <condition>; <post>
+
+So
+
+    for i := 0; i < 10; i++ {
+        fmt.Println(i)
+    }
+
+and
+
+    n := 0
+    // Loop forever
+    for {
+        fmt.Println(n)
+        n++
+    }
+
+
+* Range Loops
+
+Can also use built-in function `range` to iterate over a few built-in types.
+
+    var list = []int{2, 3, 5, 7, 11, 13, 17, 19}
+    for index, value := range list {
+        fmt.Println(index, value)
+    }
+
+* Range with Maps
+
+    dict := map[string]int{
+        "tetris": 567,
+        "pinball": 2478923,
+    }
+    for key, value := range dict {
+        fmt.Println(key, value)
+    }
+
+
+.link http://blog.golang.org/go-maps-in-action
+
+Quote: "When iterating over a map with a range loop, the iteration order is not
+specified and is not guaranteed to be the same from one iteration to the next.
+Since Go 1 _the_runtime_randomizes_map_iteration_order_, as programmers relied on
+the stable iteration order of the previous implementation."
+
+_[emphasis_is_mine]_
+
+* If Statement
+
+    if <condition> { <true block> }
+    if <condition> { <true block> } else { <false block> }
+
+The condition must be a boolean. Otherwise, exactly as one would expect.
+
+    switch <value> { case <value 1>: <block 1> ... }
+
+Similar to the `switch` statement in C or the `case` statement in Ruby.
+
+* Functions
+
+Are first class values:
+
+    square := func(x int) int {
+        return x * x
+    }
+
+Can return multiple values:
+
+    func Value(n int) (int, int) {
+        return n*n, n
+    }
+
+Can have named return values
+
+    func Value(n int) (result int, nold int) {
+        nold = n
+        result = n * n
+        return
+    }
+
+No default values for function arguments.
+
+* Methods
+
+Can attach functions to any type.
+
+    type Point struct {
+        x, y int
+    }
+    func (p Point) Norm() float64 {
+        return math.Sqrt(float64(p.x * p.x + p.y * p.y))
+    }
+
+Which is used like so
+
+    myHouse := Point{x: 5, y: -34}
+    myHouse.Norm()  // returns 34.36568055487916
+
+* Interfaces
+
+Another type: Interfaces.
+
+An interface consists of a list of methods which must exist on some type,
+but makes no requirements on what that underlying type must look like in memory.
+
+    type Stringer interface {
+        String() string
+    }
+
+Any type which has a `String()` function defined on it satisfies the `Stringer` interface.
+*The*type*does*not*need*explicitly*declare*it*satisfies*the*interface.*
+
+    func (p Point) String() string {
+        return fmt.Sprintf("(%d, %d)", p.x, p.y)
+    }
+
+Now the `Point` type satisfies the `Stringer` interface.
+
+* Interfaces II
+
+A function can code against an interface:
+
+    func SayHello(s Stringer) {
+        fmt.Printf("Hello %s!", s.String())
+    }
+
+And then it can be used with any type which implements the interface. Since
+`Point` has a method `String`, it implements the interface, and we can pass
+in a `Point` to `SayHello`, even though `SayHello` has not been explicitly
+been told about the type `Point`
+
+    SayHello(myHouse)
+
+Outputs
+
+    Hello (5, -34)!
+
+* Take a breather
+
+What does this code do?
+
+.code status.go /func printSiteStatus/,/^}/
+
+* Breather II
+
+.code status-no.go /func main/,/^}/
+
+Output:
+
+    http://library.nd.edu --> 200 OK
+    http://nd.edu --> 200 OK
+
+* Goroutines
+
+We can run functions concurrently.
+The keyword `go` starts a process in the "background".
+
+.code status.go /func main/,/^}/
+
+The `go` keyword runs each function call in its own _goroutine_, and does not wait for the function to return. The `time.Sleep` is needed to wait for the gorutines to finish. (A program terminates as soon as its main function exits.)
+
+* Channels
+
+Goroutines can communicate using _channels_.
+
+    chan int    // channel which can send and receive int
+    <-chan int  // channel which allows int to be removed
+    chan<- int  // channel which allows int to be inserted
+
+They are great. I will ignore them.
+
+    chan chan int   // channel which can send and receive int channels
+
+* Working with Go
+
+* Installing Development Environment
+
+Install using your package manager. Current version is 1.3
+
+- Mac (Homebrew)
+
+    brew install go
+
+- RHEL
+
+    sudo yum install golang
+
+
+* GOPATH
+
+Go uses a local tree as a workspace. Set this up:
+
+    cd ~
+    mkdir gocode
+    export GOPATH=~/gocode
+    export PATH=$GOPATH/bin:$PATH
+
+Go puts a tree under your GOPATH
+
+    $GOPATH
+    ├── bin
+    ├── pkg
+    └── src
+
+`bin` is for binaries, `pkg` is for library files, `src` is source code.
+
+* Basic Steps
+
+- Your code goes in `$GOPATH/src/...`
+
+- It is convenient to put it in the location like `github.com/dbrower/noids` (for a repo located at https://github.com/dbrower/noids)
+
+- Then the command
+
+    go get github.com/dbrower/noids 
+
+will pull the code and compile it
+
+.link http://blog.golang.org/organizing-go-code
+
+* Working Space
+
+When in the code's directory, run the application
+
+    go run
+
+To build the application and not run or install it (i.e. copy to `$GOPATH/bin`)
+
+    go build
+
+Most tools in the tool chain are invoked with the `go` command.
+
+* Using packages
+
+In the import header we have the following
+
+.code status-wait.go /^import/,/^\)/
+
+- All three are standard packages.
+- `http` is a subpackage of `net`
+- Use in your code by the last part in the path
+
+    fmt.Println()
+    http.Get()
+    sync.WaitGroup
+
+- Documentation for the standard library is at
+
+.link http://golang.org/pkg
+
+* Local packages
+
+Other packages have other paths telling where to find the repository
+
+    import (
+        "github.com/dbrower/noids/noid"
+        "github.com/go-sql-driver/mysql"
+    )
+
+* Declaring a new package
+
+A new package requires its own subdirectory somewhere.
+
+All the source files in that subdirectory are included in the package,
+and begin with the line
+
+    package mypackage
+
+* Source of two projects
+
+- Noids, an identifier server
+- Disadis, an authroization proxy
+
+* Noids Directory Structure
+
+.code noidtree
+
+* Disadis Directory Structure
+
+.code disadistree
+
+* Visibility
+
+Items named with an uppercase letter are exported. All others are private to the package. From `disadis/auth`
+
+    type HydraAuth struct {
+        CurrentUser RequestUser     // determines the current user
+        Admin       []string        // Admin users and groups
+        fedora      fedora.Fedora   // interface to Fedora
+        cache       timecache.Cache // Cache decoded object rights
+    }
+
+The type `HydraAuth` and the fields `CurrentUser` and `Admin` are public.
+The fields `fedora`, and `cache` can only be accessed by code inside this package.
+
+Same goes with function names.
+
+    func (ha *HydraAuth) Check(r *http.Request, id string) Authorization
+    func (ha *HydraAuth) getRights(id string) *hydraRights
+
+* Usage
+
+    import "github.com/dbrower/disadis/auth"
+
+Later in the file (`disadis/download.go`)
+
+.code download.go /Auth.Check/,/}/
+
+* Power of Interfaces
+
+* Noids Interface
+
+From `noids/save.go`
+
+.code save.go
+
+* Implementations
+
+- No Saving (keep in memory) `noids/save_null.go`
+- As files `noids/save_filesystem.go`
+- In database `noids/save_db.go`
+
+* No Saving
+
+.code save_null.go
+
+* In Database
+
+.code save_db.go /^type/,30
+
+* Fit to standard library interface
+
+Want to handle HTTP Range requests. There is a standard library function do this.
+But we are proxying content from Fedora, so we just have a stream with no seek ability.
+
+    func ServeContent(w ResponseWriter,
+                      req *Request,
+                      name string,
+                      modtime time.Time,
+                      content io.ReadSeeker)
+
+    type ReadSeeker interface {
+            Reader
+            Seeker
+    }
+    type Reader interface {
+            Read(p []byte) (n int, err error)
+    }
+    type Seeker interface {
+            Seek(offset int64, whence int) (int64, error)
+    }
+
+* Fit to standard library interface II
+
+.code stream_seeker.go /^type/,/^}/
+
+.code stream_seeker.go /^func.* Seek/,/^}/
+
+* Fit to standard library interface III
+
+.code stream_seeker.go /^func.* Read/,/^}/
+
+* http.Handler interface
+
+Very important interface for servers
+
+    type Handler interface {
+            ServeHTTP(ResponseWriter, *Request)
+    }
+
+Analogous to the Rack interface in Ruby.
+
+* Standard Library Handlers
+
+In `net/http`
+
+    func FileServer(root FileSystem) Handler
+    func NotFoundHandler() Handler
+    func RedirectHandler(url string, code int) Handler
+    func TimeoutHandler(h Handler, dt time.Duration, msg string) Handler
+
+For multiplexing, use `http.ServeMux`
+
+    func (mux *ServeMux) Handle(pattern string, handler Handler)
+    func (mux *ServeMux) ServeHTTP(w ResponseWriter, r *Request)
+
+It satisifies the Handler interface!
+
+
+* Testing
+
+* Testing files
+
+- There is a built in testing tool, `go`test`.
+- In the source tree there are files of the form `*_test.go`.
+- These files are omitted usually when compiling.
+- The test tool will compile the package with these files, and will then call any function which begins with the name `Test`. This function should have the signature
+
+    func TestSomething(t *testing.T)
+
+- Also support for benchmarking
+
+* Testing Code
+
+.code noid_test.go
+
+* Example
+
+    $ go test ./...
+    ok  	github.com/dbrower/noids	0.360s
+    ok  	github.com/dbrower/noids/noid	0.159s
+    ?   	github.com/dbrower/noids/noid-tool	[no test files]
+
+Or, verbosely,
+
+    $ go test -v ./...
+    === RUN TestEverything
+    2014/08/08 10:09:41 Save (null) a
+    --- PASS: TestEverything (0.00 seconds)
+    === RUN TestMint
+    2014/08/08 10:09:41 Save (null) mint
+    2014/08/08 10:09:41 Save (null) mint
+    2014/08/08 10:09:41 Save (null) mint
+    2014/08/08 10:09:41 Save (null) mint
+    --- PASS: TestMint (0.00 seconds)
+    === RUN TestDbSavePool
+    2014/08/08 10:09:41 Save (db) test
+    2014/08/08 10:09:41 Creating new db record for test
+    --- PASS: TestDbSavePool (0.00 seconds)
+    [...]
+
+* Test coverage
+
+- Install coverage displayer
+
+    go get code.google.com/p/go.tools/cmd/cover
+
+- Run test
+
+    go test -coverprofile=zzz
+    go test -coverprofile=zzz -covermode=count
+
+- View results
+
+    go tool cover -html=zzz
+    go tool cover -func=zzz
+    github.com/dbrower/noids/pools.go:    NewPoolGroup     100.0%
+    github.com/dbrower/noids/pools.go:    AddPool          100.0%
+    github.com/dbrower/noids/pools.go:    SetPoolState      82.4%
+    github.com/dbrower/noids/pools.go:    PoolMint          95.2%
+    ...
+    github.com/dbrower/noids/server.go:   logRequest       100.0%
+    github.com/dbrower/noids/server.go:   SetupHandlers     73.3%
+    total:                                (statements)      54.9%
+
+
+* Tools
+
+* Compiler
+
+- The static type checking helps a lot with refactoring and ensuring that every piece of code which should be changed gets changed.
+- The compiler doesn't have warnings. Any problems are errors.
+- The compiler doesn't like unused imports or variables. Those are problems, ergo they are errors.
+
+ go run     # compile and run the current directory
+ go build   # compile the current directory, leave executable in directory
+Options
+
+ -race      # enable the race detector
+
+* go fmt
+
+The format tool will reformat code files to have a consistent indenting and style.
+This tool is used by _everyone_on_the_planet_, and all Go code has this style.
+
+    go fmt ./...
+
+* go vet
+
+Checks for code correctness, beyond what is necessary to compile the code
+This tool is created by the Go team, but not in the main compiler repository.
+
+- Install
+
+    go get -u code.google.com/p/go.tools/cmd/vet
+
+- Run
+
+    $ go tool vet .
+    auth/hydra_auth.go:186: possible formatting directive in Println call
+
+
+* golint
+
+The linter analyzes code and finds possible problems with usage of variables and naming conventions. (Yes, Go has naming conventions. SnakeCase).
+
+- Install with
+
+    go get github.com/golang/lint/golint
+
+- Run
+
+    $ golint .
+    disadis.go:22:6: exported type Reopener should have comment or be unexported
+    disadis.go:65:3: don't use underscores in Go names; struct field Log_filename should be LogFilename
+    download.go:93:11: should omit type int from declaration of var version; it will be inferred from the right-hand side
+    mux.go:51:1: receiver name dim should be consistent with previous receiver name dm for DsidMux
+    stream_seeker.go:8:1: comment on exported type StreamSeeker should be of the form "StreamSeeker ..." (with optional leading article)
+    stream_seeker.go:18:2: error var seekerError should have name of the form errFoo
+    stream_seeker.go:18:27: error strings should not be capitalized
+
+
+* Deep Dive
+
+* Standard Library
+
+* Surprise
+
+- There are no slides on this
+
+* Resources
+
+Main website
+
+.link http://golang.org
+
+Interactive tutorial going over all the language constructs:
+
+.link http://tour.golang.org/#1
+
+Guidelines for writing effective code
+
+.link http://golang.org/doc/effective_go.html
+
+
